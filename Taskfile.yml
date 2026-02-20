@@ -16,11 +16,6 @@ tasks:
     cmds:
       - terraform plan
 
-  up:
-    desc: Apply Terraform to provision infrastructure
-    cmds:
-      - terraform apply -auto-approve
-
   down:
     desc: Teardown Terraform infrastructure (force)
     cmds:
@@ -38,6 +33,20 @@ tasks:
       - rm -rf .terraform
       - rm -f .terraform.lock.hcl
       - rm -rf .tmp/
+
+  up:
+    desc: Two-phase apply to configure N8N_HOST and WEBHOOK_URL after initial deployment
+    silent: true
+    cmds:
+      - terraform apply -auto-approve
+      - |
+        N8N_URL=$(terraform output -raw n8n_url)
+        if grep -q "^n8n_url" terraform.tfvars; then
+          sed -i '' "s|^n8n_url.*|n8n_url = \"${N8N_URL}\"|" terraform.tfvars
+        else
+          printf '\nn8n_url = "%s"\n' "${N8N_URL}" >> terraform.tfvars
+        fi
+      - terraform apply -auto-approve
 
   lint:
     desc: Format and lint Terraform

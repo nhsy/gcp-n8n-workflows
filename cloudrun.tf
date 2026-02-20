@@ -72,6 +72,20 @@ resource "google_cloud_run_v2_service" "n8n_service" {
         name  = "QUEUE_HEALTH_CHECK_ACTIVE"
         value = "true"
       }
+      dynamic "env" {
+        for_each = var.n8n_url != "" ? [1] : []
+        content {
+          name  = "N8N_HOST"
+          value = local.n8n_host
+        }
+      }
+      dynamic "env" {
+        for_each = var.n8n_url != "" ? [1] : []
+        content {
+          name  = "WEBHOOK_URL"
+          value = var.n8n_url
+        }
+      }
 
       # Secrets
       env {
