@@ -50,6 +50,18 @@ resource "google_cloud_run_v2_service" "n8n_service" {
         value = google_sql_user.n8n_db_user.name
       }
       env {
+        name  = "N8N_PUSH_BACKEND"
+        value = "websocket"
+      }
+      env {
+        name  = "GENERIC_TIMEZONE"
+        value = "Europe/London"
+      }
+      env {
+        name  = "TZ"
+        value = "Europe/London"
+      }
+      env {
         name = "DB_POSTGRESDB_HOST"
         # Cloud Run connects to Cloud SQL via unix sockets when volumes are configured
         value = "/cloudsql/${google_sql_database_instance.n8n_db_instance.connection_name}"

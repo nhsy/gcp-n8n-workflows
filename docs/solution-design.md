@@ -4,6 +4,37 @@
 
 This proof of concept (POC) provisions a highly available and secure instance of [n8n](https://n8n.io/) operating entirely within Google Cloud.
 
+```text
+                      +-------------------+
+                      |                   |
+                      |   Public Users    |
+                      |                   |
+                      +---------+---------+
+                                | HTTPS Ingress
+                                v
++-----------------------------------------------------------------------+
+|                       Google Cloud Platform                           |
+|                                                                       |
+|                     +-------------------+                             |
+|                     |                   |                             |
+|                     |  Cloud Run (n8n)  |                             |
+|                     | (Service Account) |                             |
+|                     |                   |                             |
+|                     +--+--------+----+--+                             |
+|                        |        |    |                                |
+|       +----------------+        |    +---------------+                |
+|       | Unix Socket             | API                | API            |
+|       v                         v                    v                |
+| +-----+--------------+  +-------+----------+  +------+--------------+ |
+| |                    |  |                  |  |                     | |
+| |   Cloud SQL (PG)   |  |  Secret Manager  |  |      Vertex AI      | |
+| |(Persistent Storage)|  |(DB Pwd, Enc Key) |  | (Workflow Prompts)  | |
+| |                    |  |                  |  |                     | |
+| +--------------------+  +------------------+  +---------------------+ |
+|                                                                       |
++-----------------------------------------------------------------------+
+```
+
 * **Google Cloud Run:** A serverless environment running the official `n8nio/n8n:latest` Docker image.
 * **Google Cloud SQL (PostgreSQL):** A fully managed PostgreSQL instance acting as the persistent storage layer for n8n executions, credentials, and configurations.
 * **Google Secret Manager:** Securely stores sensitive configuration data including the PostgreSQL database password and the n8n encryption key.
@@ -204,6 +235,18 @@ resource "google_cloud_run_v2_service" "n8n_service" {
         value = google_sql_user.n8n_db_user.name
       }
       env {
+        name  = "N8N_PUSH_BACKEND"
+        value = "websocket"
+      }
+      env {
+        name  = "GENERIC_TIMEZONE"
+        value = "Europe/London"
+      }
+      env {
+        name  = "TZ"
+        value = "Europe/London"
+      }
+      env {
         name  = "DB_POSTGRESDB_HOST"
         # Cloud Run connects to Cloud SQL via unix sockets when volumes are configured
         value = "/cloudsql/${google_sql_database_instance.n8n_db_instance.connection_name}"
@@ -386,73 +429,53 @@ jobs:
 
 ```
 
-## 6. Demo Workflow: Securing Vertex AI Calls via Metadata Server
+## 6. Demo Workflow: AI Agent with Google Vertex Chat Model
 
-The complete n8n workflow JSON template is available in [`templates/demo-vertex-ai-workflow.json.tpl`](../templates/demo-vertex-ai-workflow.json.tpl). To use this, it must be rendered by Terraform to populate the `${project_id}` and `${model_id}` variables.
+The complete n8n workflow JSON template is available in [`templates/demo-vertex-ai-workflow.json.tpl`](../templates/demo-vertex-ai-workflow.json.tpl). Terraform renders it with the `${project_id}` and `${model_id}` variables.
 
-Instead of hardcoding API keys, n8n can inherit the IAM privileges of the underlying Cloud Run environment by querying the GCP Metadata Server.
+This workflow uses n8n's native **AI Agent** node connected to the **Google Vertex Chat Model** sub-node, providing a richer LLM experience with system prompts and configurable generation parameters.
 
-### Step 1: Code Node (Authentication)
+### Prerequisites: Vertex AI Credential
 
-Create a **Code Node** in n8n. Use the following JavaScript code to hit the metadata server. This returns a valid OAuth 2.0 Access Token on behalf of the `n8n-service-account`.
+After deploying, configure a **Google Service Account** credential in n8n's UI:
+
+1. Open **Settings → Credentials → Add Credential**
+2. Search for **Google Service Account API**
+3. Paste the JSON key for `n8n-service-account` (or a dedicated key with `roles/aiplatform.user`)
+4. Save as `Vertex AI Account`
+
+### Step 1: Code Node (Define Prompt)
+
+A **Code Node** sets the user prompt. Update the `prompt` string here to change what is sent to Gemini.
 
 ```javascript
-// Query the Compute Metadata Server for an OAuth token
-const options = {
-    method: 'GET',
-    url: 'http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/token',
-    headers: {
-        'Metadata-Flavor': 'Google'
-    },
-    json: true
+return {
+  json: {
+    prompt: "Hello Gemini, from an n8n workflow on Cloud Run!"
+  }
 };
-
-try {
-    const response = await this.helpers.request(options);
-
-    // Pass the token to the next node
-    return {
-        json: {
-            access_token: response.access_token,
-            expires_in: response.expires_in
-        }
-    };
-} catch (error) {
-    throw new Error(`Failed to fetch metadata token: ${error.message}`);
-}
 ```
 
-### Step 2: HTTP Request Node (Vertex AI)
+### Step 2: AI Agent Node
 
-Attach an **HTTP Request Node** to the output of the Code Node.
+The **AI Agent** node receives the prompt via `{{ $json.prompt }}` and includes a configurable system message:
 
-* **Method:** `POST`
-* **URL:** `https://aiplatform.googleapis.com/v1/projects/${project_id}/locations/global/publishers/google/models/${model_id}:generateContent`
-* **Authentication:** `None`
-* **Headers:**
-  * Name: `Authorization`
-  * Value: `Bearer {{$json.access_token}}`
-* **Body Type:** `JSON`
-* **Body Content:**
+* **Agent Type:** Conversational Agent
+* **Text:** `={{ $json.prompt }}`
+* **System Message:** `You are a helpful assistant running inside an n8n workflow on Google Cloud Run. Be concise and informative.`
 
-```json
-{
-  "contents": [
-    {
-      "role": "user",
-      "parts": [
-        {
-          "text": "Hello Gemini, from an n8n workflow on Cloud Run!"
-        }
-      ]
-    }
-  ]
-}
-```
+### Step 3: Google Vertex Chat Model (Sub-Node)
+
+The **Google Vertex Chat Model** is connected to the AI Agent as a language model sub-node via the `ai_languageModel` connection.
+
+* **Project ID:** `${project_id}` (rendered by Terraform)
+* **Model Name:** `${model_id}` (rendered by Terraform)
+* **Temperature:** `0.7`
+* **Max Output Tokens:** `1024`
 
 ### Workflow Execution Flow
 
-1. **Code Node** triggers automatically or manually.
-2. It sends a generic GET request to `http://metadata.google.internal/...` indicating it is a Google service via the `Metadata-Flavor: Google` header.
-3. Because Cloud Run operates under the `n8n-service-account`, the server returns an access token scoped to its permissions.
-4. The **HTTP Request Node** receives this token natively via n8n's data referencing (`{{$json.access_token}}`) and uses it in the `Authorization` header to query Vertex AI securely.
+1. **Trigger Node** executes manually.
+2. **Define Prompt** sets `json.prompt` with the user message.
+3. **AI Agent** receives the prompt text and system instructions, then delegates LLM inference to the attached language model.
+4. **Google Vertex Chat Model** calls the Vertex AI API using the configured Service Account credential and returns Gemini's response through the AI Agent.
