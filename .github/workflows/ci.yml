@@ -1,0 +1,29 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  validate-and-deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: "read"
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Install Task
+        uses: arduino/setup-task@v2
+
+      - name: Initialize
+        run: task init
+
+      - name: Lint and Validate
+        run: task lint

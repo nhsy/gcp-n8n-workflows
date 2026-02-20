@@ -1,0 +1,36 @@
+version: '3'
+
+tasks:
+  init:
+    desc: Initialize Terraform
+    cmds:
+      - terraform init
+
+  plan:
+    desc: Plan Terraform configuration
+    cmds:
+      - terraform plan
+
+  up:
+    desc: Apply Terraform to provision infrastructure
+    cmds:
+      - terraform apply -auto-approve
+
+  down:
+    desc: Teardown Terraform infrastructure
+    cmds:
+      - terraform destroy -auto-approve
+
+  clean:
+    desc: Remove temporarly files and terraform state locks
+    cmds:
+      - rm -rf .terraform
+      - rm -f .terraform.lock.hcl
+      - rm -f tfplan
+      - rm -rf .tmp/
+
+  lint:
+    desc: Format and lint Terraform
+    cmds:
+      - terraform fmt -recursive
+      - tflint --recursive
