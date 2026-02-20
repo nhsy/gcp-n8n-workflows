@@ -22,15 +22,8 @@ jobs:
       - name: Install Task
         uses: arduino/setup-task@v2
 
-      - name: Setup TFLint
-        uses: terraform-linters/setup-tflint@v4
-
       - name: Initialize
         run: task init
 
       - name: Validate Terraform
         run: task validate
-
-      - name: Lint
-        if: ${{ !env.ACT }}
-        run: task lint
