@@ -1,4 +1,6 @@
-# n8n on Google Cloud Run POC
+# n8n on Google Cloud Run
+
+[![Validate Pipeline](https://github.com/nhsy/gcp-n8n-workflows/actions/workflows/validate.yml/badge.svg)](https://github.com/nhsy/gcp-n8n-workflows/actions/workflows/validate.yml)
 
 This project provides a robust, production-ready Proof of Concept (POC) for deploying [n8n](https://n8n.io/) on Google Cloud Run using Terraform. It includes automated infrastructure provisioning, secure secret management, and a demonstration workflow that leverages GCP Workload Identity to interact with Vertex AI.
 
@@ -21,7 +23,7 @@ This project provides a robust, production-ready Proof of Concept (POC) for depl
 
 ### 1. Configure Variables
 
-Create a `terraform.tfvars` file in the root directory (this file is ignored by git):
+Create a `terraform.tfvars` file in the root directory:
 
 ```hcl
 project_id = "your-gcp-project-id"
@@ -48,14 +50,14 @@ task up
 
 ## Standard Task Interface
 
-| Command | Action |
-|---------|--------|
-| `task init` | Initializes Terraform backend and providers. |
-| `task plan` | Generates and shows an execution plan. |
-| `task up`   | Applies the Terraform configuration to provision resources. |
-| `task down` | Destroys all provisioned infrastructure. |
-| `task lint` | Formats code and runs `tflint` across all modules. |
-| `task clean`| Removes local terraform state and temporary files. |
+| Command      | Action                                                      |
+| ------------ | ----------------------------------------------------------- |
+| `task init`  | Initializes Terraform backend and providers.                |
+| `task plan`  | Generates and shows an execution plan.                      |
+| `task up`    | Applies the Terraform configuration to provision resources. |
+| `task down`  | Destroys all provisioned infrastructure.                    |
+| `task lint`  | Formats code and runs `tflint` across all modules.          |
+| `task clean` | Removes local terraform state and temporary files.          |
 
 ## Project Structure
 

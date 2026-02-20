@@ -6,6 +6,11 @@ tasks:
     cmds:
       - terraform init
 
+  validate:
+    desc: Validate Terraform configuration
+    cmds:
+      - terraform validate
+
   plan:
     desc: Plan Terraform configuration
     cmds:
@@ -34,6 +39,12 @@ tasks:
       - terraform fmt -recursive
       - tflint --recursive
       - pre-commit run --all-files
+
+  test:ci:
+    desc: Run CI verification pipeline locally using act
+    cmds:
+      - act --validate --platform ubuntu-latest=catthehacker/ubuntu:full-latest --container-architecture linux/amd64 -W .github/workflows/validate.yml
+      - act --platform ubuntu-latest=catthehacker/ubuntu:full-latest --container-architecture linux/amd64 -W .github/workflows/validate.yml
 
   ui:
     desc: Open n8n web UI in default browser

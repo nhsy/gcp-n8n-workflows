@@ -1,4 +1,4 @@
-name: CI/CD Pipeline
+name: Validate Pipeline
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
   pull_request:
 
 jobs:
-  validate-and-deploy:
+  validate:
     runs-on: ubuntu-latest
     permissions:
       contents: "read"
@@ -22,8 +22,14 @@ jobs:
       - name: Install Task
         uses: arduino/setup-task@v2
 
+      - name: Setup TFLint
+        uses: terraform-linters/setup-tflint@v4
+
       - name: Initialize
         run: task init
+
+      - name: Validate Terraform
+        run: task validate
 
       - name: Lint and Validate
         run: task lint
