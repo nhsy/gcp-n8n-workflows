@@ -1,4 +1,4 @@
-# Solution Design: n8n on Google Cloud Run POC
+# Solution Design: n8n on Google Cloud Run
 
 ## 1. Architecture Overview
 

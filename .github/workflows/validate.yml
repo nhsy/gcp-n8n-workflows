@@ -31,5 +31,6 @@ jobs:
       - name: Validate Terraform
         run: task validate
 
-      - name: Lint and Validate
+      - name: Lint
+        if: ${{ !env.ACT }}
         run: task lint

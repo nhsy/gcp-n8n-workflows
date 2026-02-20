@@ -43,8 +43,8 @@ tasks:
   test:ci:
     desc: Run CI verification pipeline locally using act
     cmds:
-      - act --validate --platform ubuntu-latest=catthehacker/ubuntu:full-latest --container-architecture linux/amd64 -W .github/workflows/validate.yml
-      - act --platform ubuntu-latest=catthehacker/ubuntu:full-latest --container-architecture linux/amd64 -W .github/workflows/validate.yml
+      - act --validate
+      - act
 
   ui:
     desc: Open n8n web UI in default browser

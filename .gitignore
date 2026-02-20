@@ -7,8 +7,9 @@
 .plans/
 .venv/
 .vscode/
-workflows/
+/workflows/
 
+.DS_Store
 .env
 *.log
 *.bak
