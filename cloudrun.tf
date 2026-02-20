@@ -4,7 +4,14 @@ resource "google_cloud_run_v2_service" "n8n_service" {
   ingress  = "INGRESS_TRAFFIC_ALL"
 
   template {
-    service_account = google_service_account.n8n_sa.email
+    service_account  = google_service_account.n8n_sa.email
+    session_affinity = true
+    timeout          = "3600s"
+
+    scaling {
+      min_instance_count = 1
+      max_instance_count = 1
+    }
 
     containers {
       image = "n8nio/n8n:latest"
