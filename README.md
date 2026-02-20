@@ -2,7 +2,7 @@
 
 [![Validate Pipeline](https://github.com/nhsy/gcp-n8n-workflows/actions/workflows/validate.yml/badge.svg)](https://github.com/nhsy/gcp-n8n-workflows/actions/workflows/validate.yml)
 
-This project provides a robust, production-ready Proof of Concept (POC) for deploying [n8n](https://n8n.io/) on Google Cloud Run using Terraform. It includes automated infrastructure provisioning, secure secret management, and a demonstration workflow that leverages GCP Workload Identity to interact with Vertex AI.
+This project provides a robust, production-ready deployment of [n8n](https://n8n.io/) on Google Cloud Run using Terraform. It includes automated infrastructure provisioning, secure secret management, and a demonstration workflow that leverages GCP Workload Identity to interact with Vertex AI.
 
 ## Architecture Highlights
 

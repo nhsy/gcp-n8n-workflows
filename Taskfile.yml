@@ -22,9 +22,15 @@ tasks:
       - terraform apply -auto-approve
 
   down:
-    desc: Teardown Terraform infrastructure
+    desc: Teardown Terraform infrastructure (force)
     cmds:
-      - terraform destroy -auto-approve
+      - terraform destroy -target=google_cloud_run_v2_service.n8n_service -auto-approve || true
+      - |
+        if ! terraform destroy -auto-approve; then
+          echo "Standard destroy failed, force deleting Cloud SQL instance..."
+          gcloud sql instances delete n8n-db --quiet || true
+          terraform destroy -auto-approve
+        fi
 
   clean:
     desc: Remove temporarly files and terraform state locks

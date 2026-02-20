@@ -2,7 +2,7 @@
 
 ## 1. Architecture Overview
 
-This proof of concept (POC) provisions a highly available and secure instance of [n8n](https://n8n.io/) operating entirely within Google Cloud.
+This project provisions a highly available and secure instance of [n8n](https://n8n.io/) operating entirely within Google Cloud.
 
 ```text
                       +-------------------+
