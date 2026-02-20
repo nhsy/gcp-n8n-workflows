@@ -429,24 +429,15 @@ jobs:
 
 ```
 
-## 6. Demo Workflow: AI Agent with Google Vertex Chat Model
+## 6. Demo Workflow: Securing Vertex AI Calls via Metadata Server
 
-The complete n8n workflow JSON template is available in [`templates/demo-vertex-ai-workflow.json.tpl`](../templates/demo-vertex-ai-workflow.json.tpl). Terraform renders it with the `${project_id}` and `${model_id}` variables.
+The complete n8n workflow JSON template is available in [`templates/demo-vertex-ai-workflow.json.tpl`](../templates/demo-vertex-ai-workflow.json.tpl). To use this, it must be rendered by Terraform to populate the `${project_id}` and `${model_id}` variables.
 
-This workflow uses n8n's native **AI Agent** node connected to the **Google Vertex Chat Model** sub-node, providing a richer LLM experience with system prompts and configurable generation parameters.
-
-### Prerequisites: Vertex AI Credential
-
-After deploying, configure a **Google Service Account** credential in n8n's UI:
-
-1. Open **Settings → Credentials → Add Credential**
-2. Search for **Google Service Account API**
-3. Paste the JSON key for `n8n-service-account` (or a dedicated key with `roles/aiplatform.user`)
-4. Save as `Vertex AI Account`
+Instead of hardcoding API keys, n8n can inherit the IAM privileges of the underlying Cloud Run environment by querying the GCP Metadata Server. This provides a **keyless** and more secure authentication method.
 
 ### Step 1: Code Node (Define Prompt)
 
-A **Code Node** sets the user prompt. Update the `prompt` string here to change what is sent to Gemini.
+Create a **Code Node** connected to your trigger. This allows you to easily update the prompt without having to modify the raw JSON of the Vertex AI HTTP Request node.
 
 ```javascript
 return {
@@ -456,26 +447,90 @@ return {
 };
 ```
 
-### Step 2: AI Agent Node
+### Step 2: Code Node (Authentication)
 
-The **AI Agent** node receives the prompt via `{{ $json.prompt }}` and includes a configurable system message:
+Attach a second **Code Node** to fetch the OAuth token. This hits the GCP Metadata Server natively. By appending the token to `$input.first().json`, we retain the user prompt from Step 1.
 
-* **Agent Type:** Conversational Agent
-* **Text:** `={{ $json.prompt }}`
-* **System Message:** `You are a helpful assistant running inside an n8n workflow on Google Cloud Run. Be concise and informative.`
+```javascript
+// Query the Compute Metadata Server for an OAuth token
+const options = {
+    method: 'GET',
+    url: 'http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/token',
+    headers: {
+        'Metadata-Flavor': 'Google'
+    },
+    json: true
+};
 
-### Step 3: Google Vertex Chat Model (Sub-Node)
+try {
+    const response = await this.helpers.request(options);
 
-The **Google Vertex Chat Model** is connected to the AI Agent as a language model sub-node via the `ai_languageModel` connection.
+    // Append token info to the existing item
+    let item = $input.first().json;
+    item.access_token = response.access_token;
+    item.expires_in = response.expires_in;
 
-* **Project ID:** `${project_id}` (rendered by Terraform)
-* **Model Name:** `${model_id}` (rendered by Terraform)
-* **Temperature:** `0.7`
-* **Max Output Tokens:** `1024`
+    return { json: item };
+} catch (error) {
+    throw new Error(`Failed to fetch metadata token: ${error.message}`);
+}
+```
+
+### Step 3: HTTP Request Node (Vertex AI)
+
+Attach an **HTTP Request Node** to the output.
+
+> [!IMPORTANT]
+> The **Body Content** must start with an `=` sign to enable n8n expression evaluation, ensuring `{{ $json.prompt }}` is replaced with the actual text.
+
+* **Method:** `POST`
+* **URL:** `https://aiplatform.googleapis.com/v1/projects/${project_id}/locations/global/publishers/google/models/${model_id}:generateContent`
+* **Headers:** `Authorization: Bearer {{$json.access_token}}`
+* **Body Type:** `JSON`
+* **Body Content:**
+
+```json
+={
+  "contents": [
+    {
+      "role": "user",
+      "parts": [
+        {
+          "text": "{{ $json.prompt }}"
+        }
+      ]
+    }
+  ]
+}
+```
+
+### Step 4: Code Node (Pretty Print Response)
+
+An enhanced **Code Node** parses the nested JSON, extracts token usage statistics, and generates a formatted Markdown summary.
+
+```javascript
+const item = $input.first().json;
+const text = item.candidates?.[0]?.content?.parts?.[0]?.text ?? "No response";
+const usage = item.usageMetadata ?? {};
+
+return {
+  json: {
+    message: text,
+    usage: {
+      total_tokens: usage.totalTokenCount,
+      prompt_tokens: usage.promptTokenCount,
+      completion_tokens: usage.candidatesTokenCount,
+      thought_tokens: usage.thoughtsTokenCount || 0
+    },
+    formatted_summary: `### Gemini Response\n\n${text}\n\n---\n*Tokens: ${usage.totalTokenCount} (${usage.promptTokenCount} in, ${usage.candidatesTokenCount} out)*`
+  }
+};
+```
 
 ### Workflow Execution Flow
 
-1. **Trigger Node** executes manually.
-2. **Define Prompt** sets `json.prompt` with the user message.
-3. **AI Agent** receives the prompt text and system instructions, then delegates LLM inference to the attached language model.
-4. **Google Vertex Chat Model** calls the Vertex AI API using the configured Service Account credential and returns Gemini's response through the AI Agent.
+1. **Trigger Node** executes.
+2. **Define Prompt** sets `json.prompt`.
+3. **Get Metadata Token** appends the `access_token`.
+4. **HTTP Request Node** queries Vertex AI securely (using expression mode).
+5. **Pretty Print Response** parses the JSON into a clean `message` and `usage` statistics.

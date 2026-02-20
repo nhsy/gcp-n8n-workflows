@@ -11,7 +11,7 @@ resource "google_cloud_run_v2_service" "n8n_service" {
 
       # Overriding default entrypoint to ensure DB proxy starts
       command = ["/bin/sh"]
-      args    = ["-c", "sleep 5; n8n start"]
+      args    = ["-c", "sleep 5;n8n start"]
 
       ports {
         container_port = 5678
@@ -20,7 +20,6 @@ resource "google_cloud_run_v2_service" "n8n_service" {
       resources {
         limits = {
           memory = "2Gi"
-          cpu    = "1000m"
         }
         cpu_idle = false # Avoid CPU throttling for background tasks
       }
@@ -34,37 +33,37 @@ resource "google_cloud_run_v2_service" "n8n_service" {
         value = "https"
       }
       env {
-        name  = "WEBHOOK_URL"
-        value = "https://n8n-${var.project_id}.${var.region}.run.app" # To be replaced with domain mapping if applicable
-      }
-      env {
         name  = "DB_TYPE"
         value = "postgresdb"
       }
       env {
         name  = "DB_POSTGRESDB_DATABASE"
-        value = google_sql_database.n8n_db.name
+        value = "n8n"
       }
       env {
         name  = "DB_POSTGRESDB_USER"
-        value = google_sql_user.n8n_db_user.name
-      }
-      env {
-        name  = "N8N_PUSH_BACKEND"
-        value = "websocket"
-      }
-      env {
-        name  = "GENERIC_TIMEZONE"
-        value = "Europe/London"
-      }
-      env {
-        name  = "TZ"
-        value = "Europe/London"
+        value = "n8n-user"
       }
       env {
         name = "DB_POSTGRESDB_HOST"
         # Cloud Run connects to Cloud SQL via unix sockets when volumes are configured
         value = "/cloudsql/${google_sql_database_instance.n8n_db_instance.connection_name}"
+      }
+      env {
+        name  = "DB_POSTGRESDB_PORT"
+        value = "5432"
+      }
+      env {
+        name  = "DB_POSTGRESDB_SCHEMA"
+        value = "public"
+      }
+      env {
+        name  = "GENERIC_TIMEZONE"
+        value = "UTC"
+      }
+      env {
+        name  = "QUEUE_HEALTH_CHECK_ACTIVE"
+        value = "true"
       }
 
       # Secrets

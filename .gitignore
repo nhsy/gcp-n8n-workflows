@@ -7,15 +7,7 @@
 .plans/
 .venv/
 .vscode/
-
-
-# Python
-.venv/
-__pycache__/
-.pytest_cache/
-.coverage
-.ruff_cache/
-
+workflows/
 
 .env
 *.log
@@ -28,3 +20,5 @@ __pycache__/
 *.tfstate.backup
 *.tfvars
 tfplan
+
+docs/blog.md

@@ -26,7 +26,6 @@ tasks:
     cmds:
       - rm -rf .terraform
       - rm -f .terraform.lock.hcl
-      - rm -f tfplan
       - rm -rf .tmp/
 
   lint:
@@ -34,3 +33,22 @@ tasks:
     cmds:
       - terraform fmt -recursive
       - tflint --recursive
+      - pre-commit run --all-files
+
+  ui:
+    desc: Open n8n web UI in default browser
+    vars:
+      N8N_URL:
+        sh: terraform output -raw n8n_url
+    cmds:
+      - open {{.N8N_URL}}
+
+  logs:
+    desc: View the latest logs for the n8n Cloud Run service
+    vars:
+      REGION:
+        sh: terraform output -raw db_instance_connection_name | awk -F':' '{print $2}'
+      PROJECT:
+        sh: terraform output -raw db_instance_connection_name | awk -F':' '{print $1}'
+    cmds:
+      - gcloud run services logs read n8n --region={{.REGION}} --project={{.PROJECT}} --limit=50
