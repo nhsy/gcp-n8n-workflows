@@ -13,6 +13,8 @@ resource "google_cloud_run_v2_service" "n8n_service" {
       max_instance_count = 1
     }
 
+    max_instance_request_concurrency = 10
+
     containers {
       image = "n8nio/n8n:latest"
 
@@ -26,7 +28,8 @@ resource "google_cloud_run_v2_service" "n8n_service" {
 
       resources {
         limits = {
-          memory = "2Gi"
+          cpu    = var.cloudrun_cpu
+          memory = var.cloudrun_memory
         }
         cpu_idle = false # Avoid CPU throttling for background tasks
       }

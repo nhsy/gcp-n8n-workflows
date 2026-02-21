@@ -72,3 +72,18 @@ tasks:
         sh: terraform output -raw db_instance_connection_name | awk -F':' '{print $1}'
     cmds:
       - gcloud run services logs read n8n --region={{.REGION}} --project={{.PROJECT}} --limit=50
+
+  usage:
+    desc: Check memory and CPU usage/configuration for the n8n Cloud Run service
+    silent: true
+    vars:
+      REGION:
+        sh: terraform output -raw db_instance_connection_name | awk -F':' '{print $2}'
+      PROJECT:
+        sh: terraform output -raw db_instance_connection_name | awk -F':' '{print $1}'
+    cmds:
+      - echo "Current Configuration (Limits):"
+      - gcloud run services describe n8n --region={{.REGION}} --project={{.PROJECT}} --format="table(spec.template.spec.containers[0].resources.limits)"
+      - echo "---"
+      - echo "Checking for recent memory/resource events in logs..."
+      - gcloud logging read "resource.type=\"cloud_run_revision\" AND resource.labels.service_name=\"n8n\" AND (textPayload:\"Memory\" OR severity>=WARNING)" --limit=10 --project={{.PROJECT}} --format="table(timestamp, textPayload, severity)"

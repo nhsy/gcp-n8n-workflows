@@ -20,3 +20,21 @@ variable "vertexai_location" {
   description = "The Vertex AI location (e.g., global, us-central1)"
   default     = "global"
 }
+
+variable "database_tier" {
+  type        = string
+  description = "The Cloud SQL instance tier"
+  default     = "db-f1-micro"
+}
+
+variable "cloudrun_cpu" {
+  type        = string
+  description = "The CPU limit for the Cloud Run service"
+  default     = "1"
+}
+
+variable "cloudrun_memory" {
+  type        = string
+  description = "The memory limit for the Cloud Run service"
+  default     = "512Mi"
+}

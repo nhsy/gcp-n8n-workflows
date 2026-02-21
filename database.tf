@@ -5,7 +5,7 @@ resource "google_sql_database_instance" "n8n_db_instance" {
   deletion_protection = false
 
   settings {
-    tier = "db-g1-small"
+    tier = var.database_tier
   }
   depends_on = [google_project_service.enabled_apis]
 }

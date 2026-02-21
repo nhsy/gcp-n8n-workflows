@@ -5,3 +5,10 @@ region     = "europe-west1"
 # AI Model Configuration
 vertexai_model_id = "gemini-3-flash-preview"
 vertexai_location = "global"
+
+# Database Configuration
+database_tier = "db-f1-micro"
+
+# Cloud Run Configuration
+cloudrun_cpu    = "1"
+cloudrun_memory = "512Mi"
