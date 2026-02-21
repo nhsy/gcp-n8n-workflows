@@ -11,30 +11,50 @@ This project provides a robust, production-ready deployment of [n8n](https://n8n
 - **Secret Manager**: Secure handling of database credentials and n8n encryption keys.
 - **IAM Identity**: Dedicated Service Account with minimal privileges for Cloud SQL and Vertex AI access.
 - **Vertex AI Integration**: A demo workflow that authenticates via the GCP Metadata Server using a custom JavaScript Code node.
-    > [!NOTE]
-    > The custom JavaScript node is a temporary workaround until native [Application Default Credentials (ADC)](https://github.com/n8n-io/n8n/pull/23507) support is merged into the official n8n Vertex AI node.
+
+> [!NOTE]
+> The custom JavaScript node is a temporary workaround until native [Application Default Credentials (ADC)](https://github.com/n8n-io/n8n/pull/23507) support is merged into the official n8n Vertex AI node.
 
 ## Prerequisites
 
 - [Google Cloud Account](https://cloud.google.com/) and a Project ID.
+- [Google Cloud SDK (gcloud CLI)](https://cloud.google.com/sdk/docs/install)
 - [Terraform](https://www.terraform.io/) (>= 1.5.0)
 - [Go Task](https://taskfile.dev/)
 - [pre-commit](https://pre-commit.com/)
 
 ## Getting Started
 
-### 1. Configure Variables
+### 1. Authenticate with Google Cloud
 
-Create a `terraform.tfvars` file in the root directory:
+Ensure you are authenticated and have the correct project selected:
+
+```bash
+# Log in to the Google Cloud CLI
+gcloud auth login
+
+# Set your active GCP project
+gcloud config set project your-gcp-project-id
+
+# Generate Application Default Credentials (ADC) for Terraform
+gcloud auth application-default login
+```
+
+### 2. Configure Variables
+
+Create your `terraform.tfvars` from the example:
+
+```bash
+cp terraform.tfvars.example terraform.tfvars
+```
+
+Then edit `terraform.tfvars` and update your Project ID:
 
 ```hcl
 project_id         = "your-gcp-project-id"
-region             = "europe-west1"
-vertexai_model_id  = "gemini-3-flash-preview"
-vertexai_location  = "global"
 ```
 
-### 2. Initialize and Deploy
+### 3. Initialize and Deploy
 
 Use the provided `Taskfile.yml` to manage the lifecycle of the infrastructure:
 
