@@ -219,8 +219,8 @@ resource "google_cloud_run_v2_service" "n8n_service" {
         value = "https"
       }
       env {
-        name  = "WEBHOOK_URL"
-        value = "https://n8n-${var.project_id}.${var.region}.run.app" # To be replaced with domain mapping if applicable
+        name  = "N8N_ENDPOINT_HEALTH"
+        value = "health"
       }
       env {
         name  = "DB_TYPE"
@@ -235,16 +235,8 @@ resource "google_cloud_run_v2_service" "n8n_service" {
         value = google_sql_user.n8n_db_user.name
       }
       env {
-        name  = "N8N_PUSH_BACKEND"
-        value = "websocket"
-      }
-      env {
         name  = "GENERIC_TIMEZONE"
-        value = "Europe/London"
-      }
-      env {
-        name  = "TZ"
-        value = "Europe/London"
+        value = "UTC"
       }
       env {
         name  = "DB_POSTGRESDB_HOST"
@@ -340,7 +332,7 @@ tasks:
       - terraform plan
 
   up:
-    desc: Apply Terraform to provision infrastructure
+    desc: Deploy n8n infrastructure
     cmds:
       - terraform apply -auto-approve
 
@@ -431,7 +423,7 @@ jobs:
 
 ## 6. Demo Workflow: Securing Vertex AI Calls via Metadata Server
 
-The complete n8n workflow JSON template is available in [`templates/demo-vertex-ai-workflow.json.tpl`](../templates/demo-vertex-ai-workflow.json.tpl). To use this, it must be rendered by Terraform to populate the `${project_id}` and `${model_id}` variables.
+The complete n8n workflow JSON template is available in [`templates/demo-vertex-ai-workflow.json.tpl`](../templates/demo-vertex-ai-workflow.json.tpl). To use this, it must be rendered by Terraform to populate the `${project_id}`, `${vertexai_location}`, and `${vertexai_model_id}` variables.
 
 Instead of hardcoding API keys, n8n can inherit the IAM privileges of the underlying Cloud Run environment by querying the GCP Metadata Server. This provides a **keyless** and more secure authentication method.
 
@@ -484,7 +476,7 @@ Attach an **HTTP Request Node** to the output.
 > The **Body Content** must start with an `=` sign to enable n8n expression evaluation, ensuring `{{ $json.prompt }}` is replaced with the actual text.
 
 * **Method:** `POST`
-* **URL:** `https://aiplatform.googleapis.com/v1/projects/${project_id}/locations/global/publishers/google/models/${model_id}:generateContent`
+* **URL:** `https://aiplatform.googleapis.com/v1/projects/${project_id}/locations/${vertexai_location}/publishers/google/models/${vertexai_model_id}:generateContent`
 * **Headers:** `Authorization: Bearer {{$json.access_token}}`
 * **Body Type:** `JSON`
 * **Body Content:**

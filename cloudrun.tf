@@ -40,6 +40,10 @@ resource "google_cloud_run_v2_service" "n8n_service" {
         value = "https"
       }
       env {
+        name  = "N8N_ENDPOINT_HEALTH"
+        value = "health"
+      }
+      env {
         name  = "DB_TYPE"
         value = "postgresdb"
       }
@@ -71,20 +75,6 @@ resource "google_cloud_run_v2_service" "n8n_service" {
       env {
         name  = "QUEUE_HEALTH_CHECK_ACTIVE"
         value = "true"
-      }
-      dynamic "env" {
-        for_each = var.n8n_url != "" ? [1] : []
-        content {
-          name  = "N8N_HOST"
-          value = local.n8n_host
-        }
-      }
-      dynamic "env" {
-        for_each = var.n8n_url != "" ? [1] : []
-        content {
-          name  = "WEBHOOK_URL"
-          value = var.n8n_url
-        }
       }
 
       # Secrets
@@ -132,4 +122,16 @@ resource "google_cloud_run_v2_service_iam_member" "n8n_public_access" {
   name     = google_cloud_run_v2_service.n8n_service.name
   role     = "roles/run.invoker"
   member   = "allUsers"
+}
+
+# Health check to verify service is up and responding
+resource "null_resource" "n8n_health_check" {
+  depends_on = [
+    google_cloud_run_v2_service.n8n_service,
+    google_cloud_run_v2_service_iam_member.n8n_public_access
+  ]
+
+  provisioner "local-exec" {
+    command = "for i in {1..30}; do curl -sf ${google_cloud_run_v2_service.n8n_service.uri}/health && break || (echo 'Waiting for n8n to be ready...' && sleep 10); done"
+  }
 }

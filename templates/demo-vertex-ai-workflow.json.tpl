@@ -41,7 +41,7 @@
         {
             "parameters": {
                 "method": "POST",
-                "url": "https://aiplatform.googleapis.com/v1/projects/${project_id}/locations/global/publishers/google/models/${model_id}:generateContent",
+                "url": "https://aiplatform.googleapis.com/v1/projects/${project_id}/locations/${vertexai_location}/publishers/google/models/${vertexai_model_id}:generateContent",
                 "sendHeaders": true,
                 "headerParameters": {
                     "parameters": [

@@ -26,8 +26,10 @@ This project provides a robust, production-ready deployment of [n8n](https://n8n
 Create a `terraform.tfvars` file in the root directory:
 
 ```hcl
-project_id = "your-gcp-project-id"
-region     = "europe-west1"
+project_id         = "your-gcp-project-id"
+region             = "europe-west1"
+vertexai_model_id  = "gemini-3-flash-preview"
+vertexai_location  = "global"
 ```
 
 ### 2. Initialize and Deploy
@@ -37,9 +39,6 @@ Use the provided `Taskfile.yml` to manage the lifecycle of the infrastructure:
 ```bash
 # Initialize Terraform and install providers
 task init
-
-# Run linting and validation
-task lint
 
 # View the execution plan
 task plan
@@ -74,7 +73,7 @@ Once deployed, you can access the n8n UI at the URL provided in the Terraform ou
 The workflow demonstrates:
 
 1. **Authentication**: Fetching an OAuth token from `metadata.google.internal`.
-2. **Vertex AI Call**: Using the token to prompt `gemini-3-flash-preview`.
+2. **Vertex AI Call**: Using the token to prompt the configured Vertex AI model (`vertexai_model_id`).
 
 ## Security
 
