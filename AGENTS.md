@@ -12,7 +12,7 @@ This project automates the deployment of **n8n** on **Google Cloud Run** using T
 - **Automation Platform**: n8n (running on Cloud Run)
 - **Database**: Cloud SQL for PostgreSQL
 - **Security**: Secret Manager for sensitive keys
-- **AI**: Google Vertex AI (Gemini 1.5 Flash/Pro)
+- **AI**: Google Vertex AI (gemini-3-flash-preview)
 
 ## Architecture Overview
 

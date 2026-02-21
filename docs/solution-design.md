@@ -104,7 +104,7 @@ resource "google_sql_database_instance" "n8n_db_instance" {
   region           = var.region
 
   settings {
-    tier = "db-g1-small"
+    tier = var.database_tier
   }
   depends_on = [google_project_service.enabled_apis]
 }
@@ -204,8 +204,8 @@ resource "google_cloud_run_v2_service" "n8n_service" {
 
       resources {
         limits = {
-          memory = "2Gi"
-          cpu    = "1000m"
+          memory = var.cloudrun_memory
+          cpu    = var.cloudrun_cpu
         }
         cpu_idle = false # Avoid CPU throttling for background tasks
       }
@@ -220,7 +220,7 @@ resource "google_cloud_run_v2_service" "n8n_service" {
       }
       env {
         name  = "N8N_ENDPOINT_HEALTH"
-        value = "health"
+        value = "/health"
       }
       env {
         name  = "DB_TYPE"
@@ -337,16 +337,23 @@ tasks:
       - terraform apply -auto-approve
 
   down:
-    desc: Teardown Terraform infrastructure
+    desc: Teardown Terraform infrastructure (force)
     cmds:
-      - terraform destroy -auto-approve
+      - terraform destroy -target=google_cloud_run_v2_service.n8n_service -auto-approve || true
+      - sleep 5
+      - terraform destroy -target=google_sql_database.n8n_db -auto-approve || true
+      - |
+        if ! terraform destroy -auto-approve; then
+          echo "Standard destroy failed, force deleting Cloud SQL instance..."
+          gcloud sql instances delete n8n-db --quiet || true
+          terraform destroy -auto-approve
+        fi
 
   clean:
     desc: Remove temporarly files and terraform state locks
     cmds:
       - rm -rf .terraform
       - rm -f .terraform.lock.hcl
-      - rm -f tfplan
       - rm -rf .tmp/
 
   lint:
@@ -354,6 +361,35 @@ tasks:
     cmds:
       - terraform fmt -recursive
       - tflint --recursive
+      - pre-commit run --all-files
+
+  ui:
+    desc: Open n8n web UI in default browser
+    vars:
+      N8N_URL:
+        sh: terraform output -raw n8n_url
+    cmds:
+      - open {{.N8N_URL}}
+
+  logs:
+    desc: View the latest logs for the n8n Cloud Run service
+    vars:
+      REGION:
+        sh: terraform output -raw db_instance_connection_name | awk -F':' '{print $2}'
+      PROJECT:
+        sh: terraform output -raw db_instance_connection_name | awk -F':' '{print $1}'
+    cmds:
+      - gcloud run services logs read n8n --region={{.REGION}} --project={{.PROJECT}} --limit=50
+
+  usage:
+    desc: Check memory and CPU usage/configuration for the n8n Cloud Run service
+    vars:
+      REGION:
+        sh: terraform output -raw db_instance_connection_name | awk -F':' '{print $2}'
+      PROJECT:
+        sh: terraform output -raw db_instance_connection_name | awk -F':' '{print $1}'
+    cmds:
+      - gcloud run services describe n8n --region={{.REGION}} --project={{.PROJECT}} --format="table(spec.template.spec.containers[0].resources.limits)"
 ```
 
 ## 4. Code Quality & Verification (`.pre-commit-config.yaml`)
