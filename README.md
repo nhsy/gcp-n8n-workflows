@@ -11,6 +11,8 @@ This project provides a robust, production-ready deployment of [n8n](https://n8n
 - **Secret Manager**: Secure handling of database credentials and n8n encryption keys.
 - **IAM Identity**: Dedicated Service Account with minimal privileges for Cloud SQL and Vertex AI access.
 - **Vertex AI Integration**: A demo workflow that authenticates via the GCP Metadata Server using a custom JavaScript Code node.
+    > [!NOTE]
+    > The custom JavaScript node is a temporary workaround until native [Application Default Credentials (ADC)](https://github.com/n8n-io/n8n/pull/23507) support is merged into the official n8n Vertex AI node.
 
 ## Prerequisites
 
@@ -67,6 +69,8 @@ task up
 - `.github/workflows/ci.yml`: GitHub Actions pipeline for linting and validation.
 
 ## Demo Workflow
+
+![n8n Vertex AI Workflow](docs/workflow.png)
 
 Once deployed, you can access the n8n UI at the URL provided in the Terraform outputs. Locate the rendered `workflows/demo-vertex-ai-workflow.json` and import it into n8n.
 
